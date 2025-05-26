@@ -1,11 +1,15 @@
 const { spawn } = require('child_process');
 const microsoftSpeechSdk = require('microsoft-cognitiveservices-speech-sdk');
 const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: 3001 });
+const wss = new WebSocket.Server({ port: 8080 });
 let clients = [];
 const express = require('express');
 const app = express();
 const port = 3000;
+
+// Replace these with your Twitch credentials
+const clientId = 'hki5vmecwl8hjpkuyyc0cwv8jmt4u3';
+const clientSecret = 'ocr4kl5r3yl6e8bucgdhnoyk6hywex';
 
 // Your Azure Speech API credentials
 const azureSubscriptionKey = '60qW32SpB3ZenZAMEQXvU5r8Lu4DspLuQ2Xb6nFTs72L8mkHBPSBJQQJ99AKAC1i4TkXJ3w3AAAYACOGJ0Vc';  // Replace with your Azure Subscription Key
@@ -106,15 +110,30 @@ function monitorStreamAndTranscribe(streamer) {
     pushStream.write(data);
   });
 
+  // Also handle ffmpeg close, you can add similar restart logic if you want
   ffmpegCommand.on('close', (code) => {
     console.log(`FFmpeg process closed with code: ${code}`);
     pushStream.close();
-    recognizer.stopContinuousRecognitionAsync();
+    recognizer.stopContinuousRecognitionAsync(() => {
+      console.log('Recognizer stopped due to FFmpeg close.');
+    });
   });
 
   stream.on('close', (code) => {
-    console.log(`Stream closed for ${streamUrl}`);
-    console.log(`Streamlink process closed with code: ${code}`);
+    console.log(`Stream closed for ${streamUrl} with code: ${code}`);
+    console.log('Restarting monitoring in 3 seconds...');
+    
+    // Stop recognizer safely
+    if (recognizer) {
+      recognizer.stopContinuousRecognitionAsync(() => {
+        console.log('Recognizer stopped due to stream close.');
+      });
+    }
+
+    // Wait 3 seconds and then restart
+    setTimeout(() => {
+      monitorStreamAndTranscribe(streamer);
+    }, 300000);
   });
 }
 
@@ -139,8 +158,6 @@ function resumeRecognizer() {
     console.log(`Recognizer not found.`);
   }
 }
-
-
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
@@ -174,7 +191,7 @@ app.listen(port, () => {
 // Main function to execute the script
 (async function main() {
   try {
-      monitorStreamAndTranscribe('bucklington');
+      monitorStreamAndTranscribe('filian');
   } catch (error) {
     console.error('An error occurred:', error.message);
   }
