@@ -1,11 +1,16 @@
 const { spawn } = require('child_process');
 const microsoftSpeechSdk = require('microsoft-cognitiveservices-speech-sdk');
 const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: 3001 });
-let clients = [];
+const http = require('http');
 const express = require('express');
+
+// Create the WebSocket server (noServer so we control routing)
+const wss = new WebSocket.Server({ noServer: true });
+
 const app = express();
-const port = 3000;
+const server = http.createServer(app);
+
+let clients = [];
 
 // Replace these with your Twitch credentials
 const clientId = 'hki5vmecwl8hjpkuyyc0cwv8jmt4u3';
@@ -64,7 +69,7 @@ function monitorStreamAndTranscribe(streamer) {
 
         setTimeout(() => {
           resumeRecognizer();
-        }, 70000)
+        }, 120000)
         for (const ws of clients) {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send('play');
@@ -159,33 +164,51 @@ function resumeRecognizer() {
   }
 }
 
-wss.on('connection', (ws) => {
-  console.log('Client connected');
+// Serve regular HTTP routes if needed
+app.get('/', (req, res) => {
+  res.send('WebSocket server is running');
+});
+
+// Handle WebSocket upgrades manually
+server.on('upgrade', (request, socket, head) => {
+  const { url } = request;
+
+  console.log(`Incoming WS request: ${url}`);
+
+  // You can restrict routes here
+  if (url === '/filian') {//|| url === '/play' || url === '/chat') {
+    wss.handleUpgrade(request, socket, head, ws => {
+      ws.route = url; // Attach route to ws instance
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy(); // Reject unknown routes
+  }
+});
+
+// Handle WebSocket connections
+wss.on('connection', (ws, req) => {
+  console.log(`New WebSocket connection on ${ws.route}`);
+
+  ws.send(`Connected via ${ws.route}`);
   clients.push(ws);
-  
-  ws.on('message', (message) => {
-    console.log('Received: %s', message);
+
+  ws.on('message', message => {
+    console.log(`[${ws.route}] Message: ${message}`);
     let data = JSON.parse(message);
   });
 
   ws.on('close', () => {
+    console.log(`Connection on ${ws.route} closed`);
     // Remove from list on disconnect
     clients = clients.filter(client => client !== ws);
     console.log('Client disconnected. Total:', clients.length);
   });
 });
 
-// Serve static files from "public" folder
-app.use(express.static('public'));
-
-// Route for /test
-app.get('/test', (req, res) => {
-  res.send('Hello from /test route!');
-});
-
-// Start the server
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+// Start server
+server.listen(3001, () => {
+  console.log('Server listening on port 3001');
 });
 
 // Main function to execute the script
