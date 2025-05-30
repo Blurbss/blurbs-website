@@ -6,6 +6,13 @@ const express = require('express');
 
 // Create the WebSocket server (noServer so we control routing)
 const wss = new WebSocket.Server({ noServer: true });
+// Send periodic ping to keep connection alive
+const KEEPALIVE_INTERVAL_MS = 30000;
+function noop() {}
+
+function heartbeat() {
+  this.isAlive = true;
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -126,7 +133,7 @@ function monitorStreamAndTranscribe(streamer) {
 
   stream.on('close', (code) => {
     console.log(`Stream closed for ${streamUrl} with code: ${code}`);
-    console.log('Restarting monitoring in 3 seconds...');
+    console.log('Restarting monitoring in 5 minutes...');
     
     // Stop recognizer safely
     if (recognizer) {
@@ -190,6 +197,9 @@ server.on('upgrade', (request, socket, head) => {
 wss.on('connection', (ws, req) => {
   console.log(`New WebSocket connection on ${ws.route}`);
 
+  ws.isAlive = true;
+  ws.on('pong', heartbeat); // Listen for pongs to confirm client is alive
+
   ws.send(`Connected via ${ws.route}`);
   clients.push(ws);
 
@@ -204,6 +214,23 @@ wss.on('connection', (ws, req) => {
     clients = clients.filter(client => client !== ws);
     console.log('Client disconnected. Total:', clients.length);
   });
+});
+
+// Interval to ping all clients
+const interval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) {
+      console.log('Terminating unresponsive client');
+      return ws.terminate();
+    }
+
+    ws.isAlive = false;
+    ws.ping(noop); // Send ping frame; client should respond with pong
+  });
+}, KEEPALIVE_INTERVAL_MS);
+
+wss.on('close', () => {
+  clearInterval(interval);
 });
 
 // Start server
