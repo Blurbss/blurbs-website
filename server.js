@@ -68,7 +68,7 @@ function monitorStreamAndTranscribe(streamer) {
       console.log(`${streamer}: Recognized speech: ${recognizedText}`);
       
       // Check if the word "like" is in the recognized text and it has not been detected before
-      if (recognizedText.toLowerCase().includes("like")) {
+      if (recognizedText.toLowerCase().includes("guinea pig bridge")) {
         console.log("Specific word detected in audio!");
         
         // Optionally broadcast to all clients
@@ -241,7 +241,7 @@ server.listen(3001, () => {
 // Main function to execute the script
 (async function main() {
   try {
-      monitorStreamAndTranscribe('filian');
+      monitorStreamAndTranscribe('blurbsbuilds');
   } catch (error) {
     console.error('An error occurred:', error.message);
   }
