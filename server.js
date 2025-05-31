@@ -67,8 +67,9 @@ function monitorStreamAndTranscribe(streamer) {
       const recognizedText = e.result.text;
       console.log(`${streamer}: Recognized speech: ${recognizedText}`);
       
-      // Check if the word "like" is in the recognized text and it has not been detected before
-      if (recognizedText.toLowerCase().includes("guinea pig bridge")) {
+      // Check if the word "guinea pig bridge" is in the recognized text
+      let textLower = recognizedText.toLowerCase();
+      if (textLower.includes("guinea pig bridge") || (textLower.includes("guinea") && textLower.includes("pig") && textLower.includes("bridge"))) {
         console.log("Specific word detected in audio!");
         
         // Optionally broadcast to all clients
@@ -76,7 +77,7 @@ function monitorStreamAndTranscribe(streamer) {
 
         setTimeout(() => {
           resumeRecognizer();
-        }, 120000)
+        }, 90000)
         for (const ws of clients) {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send('play');
@@ -142,7 +143,7 @@ function monitorStreamAndTranscribe(streamer) {
       });
     }
 
-    // Wait 3 seconds and then restart
+    // Wait 5 minutes and then restart
     setTimeout(() => {
       monitorStreamAndTranscribe(streamer);
     }, 300000);
@@ -241,7 +242,7 @@ server.listen(3001, () => {
 // Main function to execute the script
 (async function main() {
   try {
-      monitorStreamAndTranscribe('blurbsbuilds');
+      monitorStreamAndTranscribe('filian');
   } catch (error) {
     console.error('An error occurred:', error.message);
   }
