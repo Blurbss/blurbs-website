@@ -69,21 +69,26 @@ function monitorStreamAndTranscribe(streamer) {
       console.log(`${streamer}: Recognized speech: ${recognizedText}`);
       
       // Check if the word "guinea pig bridge" is in the recognized text
-      let textLower = recognizedText.toLowerCase();
-      if (textLower.includes("guinea pig bridge") || (textLower.includes("guinea") && textLower.includes("pig") && textLower.includes("bridge"))) {
-        console.log("Specific word detected in audio!");
-        
-        // Optionally broadcast to all clients
-        pauseRecognizer();
+      if (!isPaused) {
+        let textLower = recognizedText.toLowerCase();
+        if (textLower.includes("guinea pig bridge") || (textLower.includes("guinea") && textLower.includes("pig") && textLower.includes("bridge"))) {
+          console.log("Specific word detected in audio!");
+          
+          // Optionally broadcast to all clients
+          //pauseRecognizer();
+          isPaused = true;
 
-        setTimeout(() => {
-          resumeRecognizer();
-        }, 90000)
-        for (const ws of clients) {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send('play');
-          } else {
-            clients.delete(ws); // remove dead connection
+          setTimeout(() => {
+            //resumeRecognizer();
+            console.log("UNPAUSED");
+            isPaused = false;
+          }, 90000)
+          for (const ws of clients) {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send('play');
+            } else {
+              clients.delete(ws); // remove dead connection
+            }
           }
         }
       }
@@ -121,7 +126,6 @@ function monitorStreamAndTranscribe(streamer) {
   // Stream the audio data from ffmpeg to Azure Speech-to-Text
   ffmpegCommand.stdout.on('data', (data) => {
     // Write the audio data into the PushStream
-    if (!isPaused)
       pushStream.write(data);
   });
 
@@ -155,7 +159,6 @@ function monitorStreamAndTranscribe(streamer) {
 // Function to pause the recognizer for a specific streamer
 function pauseRecognizer() {
   if (recognizer) {
-    isPaused = true;
     recognizer.stopContinuousRecognitionAsync(() => {
       console.log(`Recognizer paused.`);
     });
@@ -167,7 +170,6 @@ function pauseRecognizer() {
 // Function to resume the recognizer for a specific streamer
 function resumeRecognizer() {
   if (recognizer) {
-    isPaused = false;
     recognizer.startContinuousRecognitionAsync(() => {
       console.log(`Recognizer resumed.`);
     });
