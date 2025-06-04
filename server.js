@@ -18,6 +18,7 @@ const app = express();
 const server = http.createServer(app);
 
 let clients = [];
+let isPaused = false;
 
 // Replace these with your Twitch credentials
 const clientId = 'hki5vmecwl8hjpkuyyc0cwv8jmt4u3';
@@ -120,7 +121,8 @@ function monitorStreamAndTranscribe(streamer) {
   // Stream the audio data from ffmpeg to Azure Speech-to-Text
   ffmpegCommand.stdout.on('data', (data) => {
     // Write the audio data into the PushStream
-    pushStream.write(data);
+    if (!isPaused)
+      pushStream.write(data);
   });
 
   // Also handle ffmpeg close, you can add similar restart logic if you want
@@ -153,6 +155,7 @@ function monitorStreamAndTranscribe(streamer) {
 // Function to pause the recognizer for a specific streamer
 function pauseRecognizer() {
   if (recognizer) {
+    isPaused = true;
     recognizer.stopContinuousRecognitionAsync(() => {
       console.log(`Recognizer paused.`);
     });
@@ -164,6 +167,7 @@ function pauseRecognizer() {
 // Function to resume the recognizer for a specific streamer
 function resumeRecognizer() {
   if (recognizer) {
+    isPaused = false;
     recognizer.startContinuousRecognitionAsync(() => {
       console.log(`Recognizer resumed.`);
     });
