@@ -46,7 +46,7 @@ function monitorStreamAndTranscribe(streamer) {
   let streamUrl = `https://www.twitch.tv/${streamer}`;
 
   // Command to fetch the audio stream with Streamlink
-  const streamlinkCommand = `streamlink --stdout ${streamUrl} audio_only`;
+  const streamlinkCommand = `streamlink --stdout --twitch-low-latency ${streamUrl} audio_only`;
 
   const stream = spawn(streamlinkCommand, {
     shell: true,
