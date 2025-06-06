@@ -68,6 +68,7 @@ function monitorStreamAndTranscribe(streamer) {
       lastRecognizedTime = Date.now(); // ✅ Reset watchdog timer on new recognition
 
       const partial = e.result.text.toLowerCase();
+      console.log("Partial speech: " + partial);
       partialBuffer += ' ' + partial;
 
       if (!isPaused && (partialBuffer.includes("guinea pig bridge") || (partialBuffer.includes("guinea") && partialBuffer.includes("pig") && partialBuffer.includes("bridge")))) {
@@ -240,6 +241,7 @@ server.on('upgrade', (request, socket, head) => {
 // Handle WebSocket connections
 wss.on('connection', (ws, req) => {
   console.log(`New WebSocket connection on ${ws.route}`);
+  console.log('Client connected. Total:', clients.length);
 
   ws.isAlive = true;
   ws.on('pong', heartbeat); // Listen for pongs to confirm client is alive
