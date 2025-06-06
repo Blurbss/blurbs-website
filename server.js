@@ -68,10 +68,10 @@ function monitorStreamAndTranscribe(streamer) {
       lastRecognizedTime = Date.now(); // ✅ Reset watchdog timer on new recognition
 
       const partial = e.result.text.toLowerCase();
-      console.log("Partial speech: " + partial);
+      //console.log("Partial speech: " + partial);
       partialBuffer += ' ' + partial;
 
-      if (!isPaused && (partialBuffer.includes("guinea pig bridge") || (partialBuffer.includes("guinea") && partialBuffer.includes("pig") && partialBuffer.includes("bridge")))) {
+      if (!isPaused && (partialBuffer.includes("guinea pig bridge") || textLower.includes("any big bridge") || textLower.includes("any pig bridge") || (partialBuffer.includes("guinea") && partialBuffer.includes("pig") && partialBuffer.includes("bridge")))) {
         console.log("🎯 Phrase detected (partial)");
         console.log ("PAUSING");
         partialBuffer = ''; // Clear to avoid re-detection
@@ -107,7 +107,7 @@ function monitorStreamAndTranscribe(streamer) {
       // Check if the word "guinea pig bridge" is in the recognized text
       if (!isPaused) {
         let textLower = recognizedText.toLowerCase();
-        if (textLower.includes("guinea pig bridge") || (textLower.includes("guinea") && textLower.includes("pig") && textLower.includes("bridge"))) {
+        if (textLower.includes("guinea pig bridge") || textLower.includes("any big bridge") || textLower.includes("any pig bridge") || (textLower.includes("guinea") && textLower.includes("pig") && textLower.includes("bridge"))) {
           console.log("Specific word detected in audio!");
           console.log("PAUSING");
           // Optionally broadcast to all clients
@@ -118,7 +118,7 @@ function monitorStreamAndTranscribe(streamer) {
             //resumeRecognizer();
             console.log("UNPAUSED");
             isPaused = false;
-          }, 90000)
+          }, 60000)
           for (const ws of clients) {
             if (ws.readyState === WebSocket.OPEN) {
               ws.send('play');
@@ -241,13 +241,13 @@ server.on('upgrade', (request, socket, head) => {
 // Handle WebSocket connections
 wss.on('connection', (ws, req) => {
   console.log(`New WebSocket connection on ${ws.route}`);
-  console.log('Client connected. Total:', clients.length);
 
   ws.isAlive = true;
   ws.on('pong', heartbeat); // Listen for pongs to confirm client is alive
 
   ws.send(`Connected via ${ws.route}`);
   clients.push(ws);
+  console.log('Client connected. Total:', clients.length);
 
   ws.on('message', message => {
     console.log(`[${ws.route}] Message: ${message}`);
