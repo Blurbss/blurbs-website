@@ -19,6 +19,7 @@ const server = http.createServer(app);
 
 let clients = [];
 let isPaused = false;
+let lastRecognizedTime = Date.now();
 
 // Replace these with your Twitch credentials
 const clientId = 'hki5vmecwl8hjpkuyyc0cwv8jmt4u3';
@@ -57,17 +58,47 @@ function monitorStreamAndTranscribe(streamer) {
   const audioConfig = microsoftSpeechSdk.AudioConfig.fromStreamInput(pushStream);
   recognizer = new microsoftSpeechSdk.SpeechRecognizer(speechConfig, audioConfig);
 
+  let partialBuffer = '';
+
   // Handle speech recognition results
   recognizer.recognizing = (s, e) => {
-    //console.log(`Recognizing: ${e.result.text}`);
-    // We don't trigger specific word detection here anymore, it happens in `recognized` only
+    if (e.result && e.result.text) {
+      lastRecognizedTime = Date.now(); // ✅ Reset watchdog timer on new recognition
+
+      const partial = e.result.text.toLowerCase();
+      partialBuffer += ' ' + partial;
+
+      if (!isPaused && (partialBuffer.includes("guinea pig bridge") || (partialBuffer.includes("guinea") && partialBuffer.includes("pig") && partialBuffer.includes("bridge")))) {
+        console.log("🎯 Phrase detected (partial)");
+        partialBuffer = ''; // Clear to avoid re-detection
+
+        isPaused = true;
+        setTimeout(() => {
+          isPaused = false;
+        }, 60000);
+
+        for (const ws of clients) {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send('play');
+          } else {
+            clients.delete(ws);
+          }
+        }
+      }
+
+      // Optional: trim buffer
+      if (partialBuffer.length > 500) {
+        partialBuffer = partialBuffer.slice(-500);
+      }
+    }
   };
 
   recognizer.recognized = (s, e) => {
     if (e.result.reason === microsoftSpeechSdk.ResultReason.RecognizedSpeech) {
       const recognizedText = e.result.text;
       console.log(`${streamer}: Recognized speech: ${recognizedText}`);
-      
+      lastRecognizedTime = Date.now(); // ✅ Reset watchdog timer on new recognition
+
       // Check if the word "guinea pig bridge" is in the recognized text
       if (!isPaused) {
         let textLower = recognizedText.toLowerCase();
@@ -245,10 +276,26 @@ server.listen(3001, () => {
   console.log('Server listening on port 3001');
 });
 
+setInterval(() => {
+  const now = Date.now();
+  const timeSinceLast = (now - lastRecognizedTime) / 1000;
+
+  if (timeSinceLast > 60) { // ⏱️ 120 seconds = 2 minutes of silence
+    console.warn(`[${new Date().toLocaleTimeString()}] No speech detected in ${Math.round(timeSinceLast)}s. Restarting recognizer.`);
+
+    recognizer.stopContinuousRecognitionAsync(() => {
+      recognizer.startContinuousRecognitionAsync(() => {
+        console.log(`[${new Date().toLocaleTimeString()}] Recognizer restarted.`);
+        lastRecognizedTime = Date.now(); // reset timer after restart
+      });
+    });
+  }
+}, 30000); // check every 30 seconds
+
 // Main function to execute the script
 (async function main() {
   try {
-      monitorStreamAndTranscribe('filian');
+      monitorStreamAndTranscribe('blurbsbuilds');
   } catch (error) {
     console.error('An error occurred:', error.message);
   }
