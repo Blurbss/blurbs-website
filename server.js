@@ -184,9 +184,11 @@ function monitorStreamAndTranscribe(streamer) {
       console.log('Recognizer stopped due to FFmpeg close.');
     });
 
-  });ffmpegCommand.stderr.on('data', (data) => {
-  console.error(`FFmpeg error: ${data.toString()}`);
-});
+  });
+  
+  ffmpegCommand.stderr.on('data', (data) => {
+    console.error(`FFmpeg error: ${data.toString()}`);
+  });
 
   stream.on('close', (code) => {
     console.log(`Stream closed for ${streamUrl} with code: ${code}`);
@@ -297,11 +299,16 @@ server.listen(3001, () => {
 });
 
 setInterval(() => {
+  if (!running)
+    return;
+
   const now = Date.now();
   const timeSinceLast = (now - lastRecognizedTime) / 1000;
+
+
   console.log("-Still listening-");
 
-  if (timeSinceLast > 60 && running) { // ⏱️ 120 seconds = 2 minutes of silence
+  if (timeSinceLast > 60) { // ⏱️ 120 seconds = 2 minutes of silence
     console.log(`[${new Date().toLocaleTimeString()}] No speech detected in ${Math.round(timeSinceLast)}s. Restarting recognizer.`);
 
     recognizer.stopContinuousRecognitionAsync(() => {
