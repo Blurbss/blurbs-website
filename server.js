@@ -154,11 +154,11 @@ function monitorStreamAndTranscribe(streamer) {
 
   // Use ffmpeg to transcode and filter audio to 16kHz, mono-channel PCM
   const ffmpegCommand = spawn('ffmpeg', [
+  '-loglevel', 'error',
   '-fflags', 'nobuffer',
   '-flags', 'low_delay',
-  '-fflags', '+genpts',
-  '-probesize', '32',
-  '-analyzeduration', '0',
+  '-probesize', '512000',        // default is 5MB = 5000000, this is 0.5MB
+  '-analyzeduration', '1000000', // 1 second max
   '-i', 'pipe:0',
   '-vn',
   '-ac', '1',
@@ -183,7 +183,10 @@ function monitorStreamAndTranscribe(streamer) {
     recognizer.stopContinuousRecognitionAsync(() => {
       console.log('Recognizer stopped due to FFmpeg close.');
     });
-  });
+
+  });ffmpegCommand.stderr.on('data', (data) => {
+  console.error(`FFmpeg error: ${data.toString()}`);
+});
 
   stream.on('close', (code) => {
     console.log(`Stream closed for ${streamUrl} with code: ${code}`);
