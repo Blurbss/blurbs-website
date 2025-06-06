@@ -64,7 +64,6 @@ function monitorStreamAndTranscribe(streamer) {
   // Handle speech recognition results
   recognizer.recognizing = (s, e) => {
     if (e.result && e.result.text) {
-      running = true;
       lastRecognizedTime = Date.now(); // ✅ Reset watchdog timer on new recognition
 
       if (!isPaused) {
@@ -103,6 +102,7 @@ function monitorStreamAndTranscribe(streamer) {
 
   recognizer.recognized = (s, e) => {
     if (e.result.reason === microsoftSpeechSdk.ResultReason.RecognizedSpeech) {
+      running = true;
       const recognizedText = e.result.text;
       console.log(`${streamer}: Recognized speech: ${recognizedText}`);
       lastRecognizedTime = Date.now(); // ✅ Reset watchdog timer on new recognition
@@ -302,7 +302,7 @@ setInterval(() => {
   console.log("-Still listening-");
 
   if (timeSinceLast > 60 && running) { // ⏱️ 120 seconds = 2 minutes of silence
-    console.warn(`[${new Date().toLocaleTimeString()}] No speech detected in ${Math.round(timeSinceLast)}s. Restarting recognizer.`);
+    console.log(`[${new Date().toLocaleTimeString()}] No speech detected in ${Math.round(timeSinceLast)}s. Restarting recognizer.`);
 
     recognizer.stopContinuousRecognitionAsync(() => {
       recognizer.startContinuousRecognitionAsync(() => {
