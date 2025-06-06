@@ -69,7 +69,7 @@ function monitorStreamAndTranscribe(streamer) {
 
       if (!isPaused) {
         const partial = e.result.text.toLowerCase();
-        //console.log("Partial speech: " + partial);
+        console.log("Partial speech: " + partial);
         partialBuffer += ' ' + partial;
 
         if (partialBuffer.includes("guinea pig bridge") || partialBuffer.includes("any big bridge") || partialBuffer.includes("any pig bridge") || 
@@ -291,6 +291,7 @@ server.listen(3001, () => {
 setInterval(() => {
   const now = Date.now();
   const timeSinceLast = (now - lastRecognizedTime) / 1000;
+  console.log("-Still listening-");
 
   if (timeSinceLast > 60 && running) { // ⏱️ 120 seconds = 2 minutes of silence
     console.warn(`[${new Date().toLocaleTimeString()}] No speech detected in ${Math.round(timeSinceLast)}s. Restarting recognizer.`);
