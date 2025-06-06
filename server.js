@@ -67,33 +67,36 @@ function monitorStreamAndTranscribe(streamer) {
       running = true;
       lastRecognizedTime = Date.now(); // ✅ Reset watchdog timer on new recognition
 
-      const partial = e.result.text.toLowerCase();
-      //console.log("Partial speech: " + partial);
-      partialBuffer += ' ' + partial;
+      if (!isPaused) {
+        const partial = e.result.text.toLowerCase();
+        //console.log("Partial speech: " + partial);
+        partialBuffer += ' ' + partial;
 
-      if (!isPaused && (partialBuffer.includes("guinea pig bridge") || textLower.includes("any big bridge") || textLower.includes("any pig bridge") || (partialBuffer.includes("guinea") && partialBuffer.includes("pig") && partialBuffer.includes("bridge")))) {
-        console.log("🎯 Phrase detected (partial)");
-        console.log ("PAUSING");
-        partialBuffer = ''; // Clear to avoid re-detection
+        if (partialBuffer.includes("guinea pig bridge") || partialBuffer.includes("any big bridge") || partialBuffer.includes("any pig bridge") || 
+        ((partialBuffer.includes("guinea") || partialBuffer.includes("any")) && (partialBuffer.includes("pig") || textLower.partialBuffer("big")) && partialBuffer.includes("bridge"))) {
+          console.log("🎯 Phrase detected (partial)");
+          console.log ("------------------PAUSING------------------");
+          partialBuffer = ''; // Clear to avoid re-detection
 
-        isPaused = true;
-        setTimeout(() => {
-          console.log("UNPAUSING");
-          isPaused = false;
-        }, 60000);
+          isPaused = true;
+          setTimeout(() => {
+            console.log("------------------UNPAUSING------------------");
+            isPaused = false;
+          }, 60000);
 
-        for (const ws of clients) {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send('play');
-          } else {
-            clients.delete(ws);
+          for (const ws of clients) {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send('play');
+            } else {
+              clients.delete(ws);
+            }
           }
         }
-      }
 
-      // Optional: trim buffer
-      if (partialBuffer.length > 500) {
-        partialBuffer = partialBuffer.slice(-500);
+        // Optional: trim buffer
+        if (partialBuffer.length > 500) {
+          partialBuffer = partialBuffer.slice(-500);
+        }
       }
     }
   };
@@ -107,16 +110,17 @@ function monitorStreamAndTranscribe(streamer) {
       // Check if the word "guinea pig bridge" is in the recognized text
       if (!isPaused) {
         let textLower = recognizedText.toLowerCase();
-        if (textLower.includes("guinea pig bridge") || textLower.includes("any big bridge") || textLower.includes("any pig bridge") || (textLower.includes("guinea") && textLower.includes("pig") && textLower.includes("bridge"))) {
+        if (textLower.includes("guinea pig bridge") || textLower.includes("any big bridge") || textLower.includes("any pig bridge") || 
+        ((textLower.includes("guinea") || textLower.includes("any")) && (textLower.includes("pig") || textLower.includes("big")) && textLower.includes("bridge"))) {
           console.log("Specific word detected in audio!");
-          console.log("PAUSING");
+          console.log("------------------PAUSING------------------");
           // Optionally broadcast to all clients
           //pauseRecognizer();
           isPaused = true;
 
           setTimeout(() => {
             //resumeRecognizer();
-            console.log("UNPAUSED");
+            console.log("------------------UNPAUSED------------------");
             isPaused = false;
           }, 60000)
           for (const ws of clients) {
