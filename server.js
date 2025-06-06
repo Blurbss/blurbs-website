@@ -88,7 +88,7 @@ function monitorStreamAndTranscribe(streamer) {
             if (ws.readyState === WebSocket.OPEN) {
               ws.send('play');
             } else {
-              clients.delete(ws);
+              clients = clients.filter(client => client !== ws);
             }
           }
         }
