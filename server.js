@@ -73,7 +73,7 @@ function monitorStreamAndTranscribe(streamer) {
         partialBuffer += ' ' + partial;
 
         if (partialBuffer.includes("guinea pig bridge") || partialBuffer.includes("any big bridge") || partialBuffer.includes("any pig bridge") || 
-        ((partialBuffer.includes("guinea") || partialBuffer.includes("any")) && (partialBuffer.includes("pig") || textLower.partialBuffer("big")) && partialBuffer.includes("bridge"))) {
+        ((partialBuffer.includes("guinea") || partialBuffer.includes("any")) && (partialBuffer.includes("pig") || partialBuffer.includes("big")) && partialBuffer.includes("bridge"))) {
           console.log("🎯 Phrase detected (partial)");
           console.log ("------------------PAUSING------------------");
           partialBuffer = ''; // Clear to avoid re-detection
@@ -154,12 +154,17 @@ function monitorStreamAndTranscribe(streamer) {
 
   // Use ffmpeg to transcode and filter audio to 16kHz, mono-channel PCM
   const ffmpegCommand = spawn('ffmpeg', [
-    '-i', 'pipe:0', // input from streamlink
-    '-vn',  // no video
-    '-ac', '1',  // mono-channel
-    '-ar', '16000',  // sample rate 16 kHz
-    '-f', 'wav',  // output format wav
-    'pipe:1'  // output to stdout
+  '-fflags', 'nobuffer',
+  '-flags', 'low_delay',
+  '-fflags', '+genpts',
+  '-probesize', '32',
+  '-analyzeduration', '0',
+  '-i', 'pipe:0',
+  '-vn',
+  '-ac', '1',
+  '-ar', '16000',
+  '-f', 'wav',
+  'pipe:1'
   ]);
 
   // Pipe streamlink's output into ffmpeg
