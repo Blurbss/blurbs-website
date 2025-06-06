@@ -69,7 +69,7 @@ function monitorStreamAndTranscribe(streamer) {
 
       if (!isPaused) {
         const partial = e.result.text.toLowerCase();
-        console.log("Partial speech: " + partial);
+        //console.log("Partial speech: " + partial);
         partialBuffer += ' ' + partial;
 
         if (partialBuffer.includes("guinea pig bridge") || partialBuffer.includes("any big bridge") || partialBuffer.includes("any pig bridge") || 
@@ -82,7 +82,7 @@ function monitorStreamAndTranscribe(streamer) {
           setTimeout(() => {
             console.log("------------------UNPAUSING------------------");
             isPaused = false;
-          }, 60000);
+          }, 50000);
 
           for (const ws of clients) {
             if (ws.readyState === WebSocket.OPEN) {
@@ -122,7 +122,7 @@ function monitorStreamAndTranscribe(streamer) {
             //resumeRecognizer();
             console.log("------------------UNPAUSED------------------");
             isPaused = false;
-          }, 60000)
+          }, 50000)
           for (const ws of clients) {
             if (ws.readyState === WebSocket.OPEN) {
               ws.send('play');
@@ -316,7 +316,7 @@ setInterval(() => {
 // Main function to execute the script
 (async function main() {
   try {
-      monitorStreamAndTranscribe('blurbsbuilds');
+      monitorStreamAndTranscribe('filian');
   } catch (error) {
     console.error('An error occurred:', error.message);
   }
