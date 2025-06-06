@@ -19,6 +19,7 @@ const server = http.createServer(app);
 
 let clients = [];
 let isPaused = false;
+let running = false;
 let lastRecognizedTime = Date.now();
 
 // Replace these with your Twitch credentials
@@ -63,6 +64,7 @@ function monitorStreamAndTranscribe(streamer) {
   // Handle speech recognition results
   recognizer.recognizing = (s, e) => {
     if (e.result && e.result.text) {
+      running = true;
       lastRecognizedTime = Date.now(); // ✅ Reset watchdog timer on new recognition
 
       const partial = e.result.text.toLowerCase();
@@ -70,10 +72,12 @@ function monitorStreamAndTranscribe(streamer) {
 
       if (!isPaused && (partialBuffer.includes("guinea pig bridge") || (partialBuffer.includes("guinea") && partialBuffer.includes("pig") && partialBuffer.includes("bridge")))) {
         console.log("🎯 Phrase detected (partial)");
+        console.log ("PAUSING");
         partialBuffer = ''; // Clear to avoid re-detection
 
         isPaused = true;
         setTimeout(() => {
+          console.log("UNPAUSING");
           isPaused = false;
         }, 60000);
 
@@ -104,7 +108,7 @@ function monitorStreamAndTranscribe(streamer) {
         let textLower = recognizedText.toLowerCase();
         if (textLower.includes("guinea pig bridge") || (textLower.includes("guinea") && textLower.includes("pig") && textLower.includes("bridge"))) {
           console.log("Specific word detected in audio!");
-          
+          console.log("PAUSING");
           // Optionally broadcast to all clients
           //pauseRecognizer();
           isPaused = true;
@@ -127,6 +131,7 @@ function monitorStreamAndTranscribe(streamer) {
   };
 
   recognizer.canceled = (s, e) => {
+    running = false;
     console.log('Speech recognition canceled:', e.errorDetails);
   };
 
@@ -135,6 +140,7 @@ function monitorStreamAndTranscribe(streamer) {
   };
 
   recognizer.sessionStopped = () => {
+    running = false;
     console.log('Speech session stopped.');
   };
 
@@ -280,7 +286,7 @@ setInterval(() => {
   const now = Date.now();
   const timeSinceLast = (now - lastRecognizedTime) / 1000;
 
-  if (timeSinceLast > 60) { // ⏱️ 120 seconds = 2 minutes of silence
+  if (timeSinceLast > 60 && running) { // ⏱️ 120 seconds = 2 minutes of silence
     console.warn(`[${new Date().toLocaleTimeString()}] No speech detected in ${Math.round(timeSinceLast)}s. Restarting recognizer.`);
 
     recognizer.stopContinuousRecognitionAsync(() => {
