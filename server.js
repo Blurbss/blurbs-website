@@ -71,9 +71,10 @@ function monitorStreamAndTranscribe(streamer) {
         //console.log("Partial speech: " + partial);
         partialBuffer += ' ' + partial;
 
-        if (partialBuffer.includes("guinea pig bridge") || partialBuffer.includes("any big bridge") || partialBuffer.includes("any pig bridge") || 
-        ((partialBuffer.includes("guinea") || partialBuffer.includes("any")) && (partialBuffer.includes("pig") || partialBuffer.includes("big")) && partialBuffer.includes("bridge"))) {
+        if (partialBuffer.includes("guinea pig bridge") || partialBuffer.includes("any big bridge") || partialBuffer.includes("any pig bridge") || partialBuffer.includes("guinea pig fridge") || partialBuffer.includes("guinea pig bread") || 
+        ((partialBuffer.includes("guinea") || partialBuffer.includes("any")) && (partialBuffer.includes("pig") || partialBuffer.includes("big")) && (partialBuffer.includes("bridge") || partialBuffer.includes("fridge")))) {
           console.log("🎯 Phrase detected (partial)");
+          console.log("Partial: " + partial);
           console.log ("------------------PAUSING------------------");
           partialBuffer = ''; // Clear to avoid re-detection
 
@@ -88,6 +89,7 @@ function monitorStreamAndTranscribe(streamer) {
               ws.send('play');
             } else {
               clients = clients.filter(client => client !== ws);
+              console.log("REMOVING CLOSED WEBSOCKET");
             }
           }
         }
@@ -110,8 +112,8 @@ function monitorStreamAndTranscribe(streamer) {
       // Check if the word "guinea pig bridge" is in the recognized text
       if (!isPaused) {
         let textLower = recognizedText.toLowerCase();
-        if (textLower.includes("guinea pig bridge") || textLower.includes("any big bridge") || textLower.includes("any pig bridge") || 
-        ((textLower.includes("guinea") || textLower.includes("any")) && (textLower.includes("pig") || textLower.includes("big")) && textLower.includes("bridge"))) {
+        if (textLower.includes("guinea pig bridge") || textLower.includes("any big bridge") || textLower.includes("any pig bridge") || textLower.includes("guinea pig fridge") || textLower.includes("guinea pig bread") || 
+        ((textLower.includes("guinea") || textLower.includes("any")) && (textLower.includes("pig") || textLower.includes("big")) && (textLower.includes("bridge") || textLower.includes("fridge")))) {
           console.log("Specific word detected in audio!");
           console.log("------------------PAUSING------------------");
           // Optionally broadcast to all clients
@@ -127,7 +129,8 @@ function monitorStreamAndTranscribe(streamer) {
             if (ws.readyState === WebSocket.OPEN) {
               ws.send('play');
             } else {
-              clients.delete(ws); // remove dead connection
+              clients = clients.filter(client => client !== ws);
+              console.log("REMOVING CLOSED WEBSOCKET");
             }
           }
         }
@@ -180,10 +183,17 @@ function monitorStreamAndTranscribe(streamer) {
   ffmpegCommand.on('close', (code) => {
     console.log(`FFmpeg process closed with code: ${code}`);
     pushStream.close();
+
     recognizer.stopContinuousRecognitionAsync(() => {
       console.log('Recognizer stopped due to FFmpeg close.');
-    });
 
+      if (code === 0) {
+        console.log('FFmpeg exited cleanly. Restarting stream monitoring...');
+        monitorStreamAndTranscribe('filian');
+      } else {
+        console.log('FFmpeg exited with error; not restarting.');
+      }
+    });
   });
   
   ffmpegCommand.stderr.on('data', (data) => {
@@ -200,11 +210,13 @@ function monitorStreamAndTranscribe(streamer) {
         console.log('Recognizer stopped due to stream close.');
       });
     }
+    
+    const waitTime = (code === 0) ? 5000 : 300000;
+    console.log(`Restarting monitoring in ${waitTime / 1000} seconds...`);
 
-    // Wait 5 minutes and then restart
     setTimeout(() => {
       monitorStreamAndTranscribe(streamer);
-    }, 300000);
+    }, waitTime);
   });
 }
 
